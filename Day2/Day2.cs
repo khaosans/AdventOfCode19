@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace Day2
@@ -17,14 +16,15 @@ namespace Day2
         {
             var position1 = line[1];
             var position2 = line[2];
-
+            var newLIne = new List<int>();
+            newLIne[0] = line
             switch (operation)
             {
                 case OpCodeValue.One:
-                    line[3] = array[position1] + array[position2];
+                    newLIne[3] = array[position1] + array[position2];
                     break;
                 case OpCodeValue.Two:
-                    line[3] = array[position1] * array[position2];
+                    newLIne[3] = array[position1] * array[position2];
                     break;
             }
 
@@ -39,6 +39,41 @@ namespace Day2
                 .ToList();
 
             return list;
+        }
+
+        public static List<int> RunCode(List<int> intList)
+        {
+            var table = CreateTable(intList);
+            var lineNumber = 0;
+            var lineLists = table.Select(line => line.Select(x => x).ToList()).ToList();
+            foreach (var lineList in lineLists)
+            {
+                if (lineList.First() == 99)
+                {
+                    break;
+                }
+                if (lineList.First() == 1)
+                {
+                    table[lineNumber] = OpCode(lineList, intList.ToArray(), OpCodeValue.One).ToList();
+                }
+
+                if (lineList.First() == 2)
+                {
+                    table[lineNumber] = OpCode(lineList, intList.ToArray(), OpCodeValue.Two).ToList();
+                }
+
+                table[lineNumber] = lineList;
+
+                
+
+                lineNumber++;
+            }
+
+            var table1 = table.SelectMany(i => i).ToList();
+            
+            Console.Out.WriteLine(table1);
+
+            return table1;
         }
     }
 }

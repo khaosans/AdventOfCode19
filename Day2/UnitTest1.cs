@@ -15,39 +15,13 @@ namespace Day2
         [Fact]
         public void Test1()
         {
-            var text = System.IO.File.ReadAllText("/Users/souriyakhaosanga/Documents/AdventOfCode/Day2/Day2.txt");
+            var text = System.IO.File.ReadAllText("/Users/skhaosanga/Documents/AdventOfCode19/Day2/Day2.txt");
 
             var intList = text.Split(",").Select(int.Parse).ToList();
 
-            var newLIst = new List<List<int>>();
-            var table = CreateTable(intList);
-
-
-            foreach (var line in table)
-            {
-                var lineList = line.Select(x => x).ToList();
-
-
-                if (lineList.First() == 1)
-                {
-                    lineList = OpCode(lineList, intList.ToArray(), OpCodeValue.One).ToList();
-                }
-
-                if (lineList.First() == 2)
-                {
-                    lineList = OpCode(lineList, intList.ToArray(), OpCodeValue.Two).ToList();
-                }
-
-                if (lineList.First() == 99)
-                {
-                    break;
-                }
-
-
-                newLIst.Add(lineList);
-            }
-
-            var count = newLIst.Count;
+            List<int> runCode = RunCode(intList);
+            
+            Assert.True(runCode.Count>0);
         }
     }
 }
