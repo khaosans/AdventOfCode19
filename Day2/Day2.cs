@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualBasic;
 
 namespace Day2
 {
@@ -12,23 +12,31 @@ namespace Day2
             Two = 2
         };
 
-        public static List<int> OpCode(List<int> line, int[] array, OpCodeValue operation)
+        public static List<int> OpCode(List<int> code)
         {
-            var position1 = line[1];
-            var position2 = line[2];
-            var newLIne = new List<int>();
-            newLIne[0] = line
-            switch (operation)
+            var currentIdx = 0;
+            while (currentIdx < code.Count + 1)
             {
-                case OpCodeValue.One:
-                    newLIne[3] = array[position1] + array[position2];
-                    break;
-                case OpCodeValue.Two:
-                    newLIne[3] = array[position1] * array[position2];
-                    break;
+                List<int> line = code.Skip(currentIdx).Take(4).ToList();
+
+                if (line.First() == 99)
+                {
+                    return code;
+                }
+
+                var position1 = line[1];
+                var position2 = line[2];
+                var position3 = line[3];
+                code[position3] = line.First() switch
+                {
+                    1 => (code[position1] + code[position2]),
+                    2 => (code[position1] * code[position2]),
+                    _ => code[position3]
+                };
+                currentIdx = currentIdx + 4;
             }
 
-            return line;
+            return code;
         }
 
         public static List<IEnumerable<int>> CreateTable(List<int> seq)
@@ -37,43 +45,7 @@ namespace Day2
                 .GroupBy(x => x.Index / 4)
                 .Select(g => g.Select(x => x.Value))
                 .ToList();
-
             return list;
-        }
-
-        public static List<int> RunCode(List<int> intList)
-        {
-            var table = CreateTable(intList);
-            var lineNumber = 0;
-            var lineLists = table.Select(line => line.Select(x => x).ToList()).ToList();
-            foreach (var lineList in lineLists)
-            {
-                if (lineList.First() == 99)
-                {
-                    break;
-                }
-                if (lineList.First() == 1)
-                {
-                    table[lineNumber] = OpCode(lineList, intList.ToArray(), OpCodeValue.One).ToList();
-                }
-
-                if (lineList.First() == 2)
-                {
-                    table[lineNumber] = OpCode(lineList, intList.ToArray(), OpCodeValue.Two).ToList();
-                }
-
-                table[lineNumber] = lineList;
-
-                
-
-                lineNumber++;
-            }
-
-            var table1 = table.SelectMany(i => i).ToList();
-            
-            Console.Out.WriteLine(table1);
-
-            return table1;
         }
     }
 }
