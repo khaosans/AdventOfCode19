@@ -133,17 +133,21 @@ namespace Day3V2
             var first = GetPoints(paths[0]).ToHashSet();
             var sec = GetPoints(paths[1]).ToHashSet();
 
-            var intersection = Enumerable.Intersect(first.Select(x => x.Item2), sec.Select(x => x.Item2));
-            
-/*
+            var intersections = Enumerable.Intersect(first.Select(x => x.Item2), sec.Select(x => x.Item2));
 
-            var steps1 = first.TakeWhile(x => !closest.Equals(x.Item2)).Select(x => x.Item1).ToList();
-            var steps2 = sec.TakeWhile(x => !closest.Equals(x.Item2)).Select(x => x.Item1).ToList();
-*/
+            //  distance, point, steps
+            List<Tuple<int, Point, int>> metaDatas = new List<Tuple<int, Point, int>>();
 
-            return 2;
+            foreach (var intersection in intersections)
+            {
+                Tuple<int,Point> firstSingle = first.Where(x => x.Item2.Equals(intersection)).Single();
+                Tuple<int,Point> secondSing = sec.Where(x => x.Item2.Equals(intersection)).Single();
+                var min = Math.Min(firstSingle.Item1,secondSing.Item1);
+                metaDatas.Add(Tuple.Create(MathDistance(intersection), intersection, min));
+            }
 
-            //Math.Min(steps1, steps2);
+            return metaDatas.Select(x => x.Item3).Sum();
+
         }
     }
 
