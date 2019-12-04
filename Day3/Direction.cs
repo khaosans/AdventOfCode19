@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Utilities;
 
 namespace Day3V2
 {
@@ -135,19 +137,17 @@ namespace Day3V2
 
             var intersections = Enumerable.Intersect(first.Select(x => x.Item2), sec.Select(x => x.Item2));
 
-            //  distance, point, steps
-            List<Tuple<int, Point, int>> metaDatas = new List<Tuple<int, Point, int>>();
+            var list1 = GetPoints(paths[0]).OrderBy(x => x.Item1).Where(x => intersections.Contains(x.Item2)).ToList();
 
-            foreach (var intersection in intersections)
-            {
-                Tuple<int,Point> firstSingle = first.Where(x => x.Item2.Equals(intersection)).Single();
-                Tuple<int,Point> secondSing = sec.Where(x => x.Item2.Equals(intersection)).Single();
-                var min = Math.Min(firstSingle.Item1,secondSing.Item1);
-                metaDatas.Add(Tuple.Create(MathDistance(intersection), intersection, min));
-            }
+            var list2 = GetPoints(paths[1]).OrderBy(x => x.Item1).Where(x => intersections.Contains(x.Item2)).ToList();
 
-            return metaDatas.Select(x => x.Item3).Sum();
 
+            var list = list1.Join(list2, list1 => list1.Item2, list2 => list2.Item2,
+                    (l1, l2) => new Tuple<int, Point>(l1.Item1 + l2.Item1, l1.Item2))
+                .OrderBy(x => x.Item1)
+                .ToList();
+
+            return list.First().Item1;
         }
     }
 
