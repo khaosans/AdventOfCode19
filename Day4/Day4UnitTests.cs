@@ -5,8 +5,6 @@ namespace Day4V1
 {
     public class UnitTest1
     {
-        private string _isValid2;
-
         [Fact]
         public void Test1()
         {
@@ -17,8 +15,7 @@ namespace Day4V1
         [Fact]
         public void Test2()
         {
-            _isValid2 = Day4Solution.isValid2("245318-765747");
-            var part2 = _isValid2;
+            var part2 = Day4Solution.isValid2("245318-765747");
             Assert.Equal("699", part2);
         }
 
