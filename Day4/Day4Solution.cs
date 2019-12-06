@@ -8,7 +8,7 @@ namespace Day4V1
     {
         public static string isValid(string range)
         {
-            var (min, max) = ParseRange("245318-765747");
+            var (min, max) = ParseRange(range);
 
 
             List<Int32> list = new List<int>();
@@ -24,8 +24,7 @@ namespace Day4V1
 
         public static string isValid2(string range)
         {
-            var (min, max) = ParseRange("245318-765747");
-
+            var (min, max) = ParseRange(range);
 
             List<Int32> list = new List<int>();
             for (var i = min; i < max; i++)
