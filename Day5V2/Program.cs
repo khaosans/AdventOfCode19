@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 
 namespace Day5V2
 {
@@ -9,7 +11,11 @@ namespace Day5V2
         static void Main(string[] args)
         {
             var csvString = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day5V2/day5input.txt".ParseCsvString();
-            Run(csvString, 1);
+            // Run(csvString, 1);
+             Run(csvString, 5);
+
+            //Run(new List<int>(){3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9}, 0);
+            //Run(new List<int> {3,3,1105,-1,9,1101,0,0,12,4,12,99,1}, 0);
         }
 
         public static readonly Func<List<int>, int, List<int>> Run = (code, input) =>
@@ -45,18 +51,29 @@ namespace Day5V2
 
                 if (line.First() == 99)
                 {
+                    Console.Out.WriteLine("HALT 99");
                     return code;
                 }
 
                 Instruction instruction = CreateInstruction(line, opCode, mode1, mode2, mode3);
 
                 List<ModeAndParam> modeAndParams = instruction.Mode.Zip(instruction.Parameters).Select(x => new ModeAndParam(x.Second, x.First)).ToList();
-                
-                code = OpCode(opCode, modeAndParams, code, line, idx, input);
+
+
+                var current = idx;
+                code = OpCode(opCode, modeAndParams, code, line, idx, out idx, input, valueToInc, out valueToInc);
+                var newIndex = idx;
+
+                if (current != newIndex)
+                {
+                    continue;
+                    
+                }
 
                 idx += valueToInc;
             }
 
+            Console.Out.WriteLine("HALT <");
             return code;
         };
 
@@ -66,9 +83,25 @@ namespace Day5V2
             return modeAndParam.Mode == 0 ? code[modeAndParam.Parameter] : modeAndParam.Parameter;
         }
 
-        private static List<int> OpCode(int operation, List<ModeAndParam> modeAndParams, List<int> code, List<int> line, int index, int input)
+        (int, int) GetValueForModeAndParamModeAndIndex(ModeAndParam modeAndParam, List<int> code)
         {
+            return modeAndParam.Mode == 0 ? (modeAndParam.Parameter, code[modeAndParam.Parameter]) : (2, modeAndParam.Parameter);
+        }
+
+
+        public static List<int> OpCode(int operation, List<ModeAndParam> modeAndParams, List<int> code, List<int> line, in int currentIndex, out int newIndex, int input, in int currentValueToInc
+            , out int newValueToInc)
+        {
+            /*
+             * Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+               Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+               Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+               Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+             */
             int value;
+            newIndex = currentIndex;
+            newValueToInc = currentValueToInc;
+
             switch (operation, line)
             {
                 case (1, _):
@@ -86,8 +119,61 @@ namespace Day5V2
                     value = code[modeAndParams[0].Parameter];
                     Console.Out.WriteLine(value);
                     return code;
+                case (5, _):
+                    //Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+                    if (GetValueForModeAndParamMode(modeAndParams[0], code) != 0)
+                    {
+                        newIndex = GetValueForModeAndParamMode(modeAndParams[1], code);
+                    }
+                    else
+                    {
+                        newIndex += 3;
+                    }
+
+                    return code;
+                case (6, _):
+                    //Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
+
+                    if (GetValueForModeAndParamMode(modeAndParams[0], code) == 0)
+                    {
+                        newIndex = GetValueForModeAndParamMode(modeAndParams[1], code);
+                    }
+                    else
+                    {
+                        newIndex += 3;
+                    }
+
+                    return code;
+                //  Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+
+                case (7, _):
+                    if (GetValueForModeAndParamMode(modeAndParams[0], code) < GetValueForModeAndParamMode(modeAndParams[1], code))
+                    {
+                        code[modeAndParams[2].Parameter] = 1;
+                    }
+                    else
+                    {
+                        code[modeAndParams[2].Parameter] = 0;
+                    }
+
+
+                    return code;
+                //   Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
+                case (8, _):
+                    if (GetValueForModeAndParamMode(modeAndParams[0], code) == GetValueForModeAndParamMode(modeAndParams[1], code))
+                    {
+                        code[modeAndParams[2].Parameter] = 1;
+                    }
+                    else
+                    {
+                        code[modeAndParams[2].Parameter] = 0;
+                    }
+
+
+                    return code;
+
                 default:
-                    throw new NotImplementedException("op ope code " + operation + " line " + line + "index " + index);
+                    throw new NotImplementedException("op ope code " + operation + " line " + line + "index " + newIndex);
             }
         }
 
@@ -124,7 +210,14 @@ namespace Day5V2
             {
                 return new Instruction(new List<int> {mode1}, new List<int> {line[1]}, opCode);
             }
-            return new Instruction(new List<int> {mode1, mode2, mode3}, new List<int> {line[1], line[2], line[3]}, opCode);
+
+            return new Instruction(new List<int>
+            {
+                mode1, mode2, mode3
+            }, new List<int>
+            {
+                line[1], line[2], line[3]
+            }, opCode);
         }
     }
 }
