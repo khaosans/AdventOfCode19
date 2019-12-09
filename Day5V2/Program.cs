@@ -48,9 +48,9 @@ namespace Day5V2
                     return code;
                 }
 
-                Instruction parsOpCodeParameters = CreateInstruction(line, opCode, mode1, mode2, mode3);
+                Instruction instruction = CreateInstruction(line, opCode, mode1, mode2, mode3);
 
-                List<ModeAndParam> modeAndParams = parsOpCodeParameters.Mode.Zip(parsOpCodeParameters.Parameters).Select(x => new ModeAndParam(x.Second, x.First)).ToList();
+                List<ModeAndParam> modeAndParams = instruction.Mode.Zip(instruction.Parameters).Select(x => new ModeAndParam(x.Second, x.First)).ToList();
                 
                 code = OpCode(opCode, modeAndParams, code, line, idx, input);
 
