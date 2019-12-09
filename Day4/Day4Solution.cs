@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace Day4V1
 {
-    public class Day4Solution
+    public static class Day4Solution
     {
-        public static string isValid(string range)
+        public static string IsValidPart1(string range)
         {
             var (min, max) = ParseRange(range);
 
@@ -22,7 +22,7 @@ namespace Day4V1
                 .ToList().Count.ToString();
         }
 
-        public static string isValid2(string range)
+        public static string UsValidPart2(string range)
         {
             var (min, max) = ParseRange(range);
 
@@ -38,11 +38,11 @@ namespace Day4V1
         }
 
 
-        public static bool HasDoubleOrMore(string intput)
+        private static bool HasDoubleOrMore(string input)
         {
-            for (var i = 0; i < intput.Length - 1; ++i)
+            for (var i = 0; i < input.Length - 1; ++i)
             {
-                if (intput[i].Equals(intput[i + 1]))
+                if (input[i].Equals(input[i + 1]))
                 {
                     return true;
                 }
@@ -51,7 +51,7 @@ namespace Day4V1
             return false;
         }
 
-        public static bool HasDoubleExactly(string input)
+        private static bool HasDoubleExactly(string input)
         {
             Dictionary<string, int> counter = new Dictionary<string, int>();
 
@@ -60,22 +60,24 @@ namespace Day4V1
                 counter[num.ToString()] = 0;
             }
 
+            var secondToLast = input.Length-2;
+            
             for (var i = 0; i < input.Length - 1; ++i)
             {
-                if (i < 4 && input[i].Equals( input[i + 1]))
+                if (i < secondToLast && input[i].Equals( input[i + 1]))
                 {
                     counter[input[i].ToString()]++;
                 }
             }
-
-            if ( input[4].Equals( input[5]))
+            
+            if ( input[secondToLast].Equals( input[input.Length]))
             {
-                counter[input[5].ToString()]++;
+                counter[input[input.Length].ToString()]++;
             }
             return counter.Values.Any(x => x.Equals(1));
         }
 
-        public static bool Increasing(string input)
+        private static bool Increasing(string input)
         {
             for (var i = 0; i < input.Length - 1; ++i)
             {
