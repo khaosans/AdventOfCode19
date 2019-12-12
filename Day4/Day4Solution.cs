@@ -70,11 +70,11 @@ namespace Day4V1
                 }
             }
             
-            if ( input[secondToLast].Equals( input[input.Length]))
+            if ( input[secondToLast].Equals( input[^1]))
             {
-                counter[input[input.Length].ToString()]++;
+                counter[input[^1].ToString()]++;
             }
-            return counter.Values.Any(x => x.Equals(1));
+            return counter.Values.Any(x => x.Equals(2));
         }
 
         private static bool Increasing(string input)

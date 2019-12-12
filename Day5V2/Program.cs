@@ -169,7 +169,6 @@ namespace Day5V2
                         code[modeAndParams[2].Parameter] = 0;
                     }
 
-
                     return code;
 
                 default:
