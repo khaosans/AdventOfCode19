@@ -8,20 +8,12 @@ namespace Day6
     {
         static void Main(string[] args)
         {
+            //
             //List<Orbit> orbits = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day6/ExamplePart2.txt".ParseOrbits();
-            List<Orbit> orbits = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day6/day6.txt".ParseOrbits();
-
-            var orbitalParent = CreateOrbitalParent(orbits);
-
-            List<string> san = GetPath(orbitalParent, "SAN");
-            List<string> you = GetPath(orbitalParent, "YOU");
-
-            var list1 = san.Except(you).ToList();
-            var list2 = you.Except(san).ToList();
-
-            var minOrbitt = list1.Count +list2.Count;
+            var minOrbitt = GetMinOrbit("/Users/souriyakhaosanga/Documents/AdventOfCode/Day6/day6.txt".ParseOrbits());
             Console.Out.WriteLine(minOrbitt);
             
+            //283 
             
 
             // var max = Math.Max(list1.Count, list2.Count) -1;
@@ -43,6 +35,20 @@ namespace Day6
                 count += CountPaths(orbitalParent,orbit.Child);
                 
             }*/
+        }
+
+        private static int GetMinOrbit(List<Orbit> parseOrbits)
+        {
+            List<Orbit> orbits = parseOrbits;
+            var orbitalParent = CreateOrbitalParent(orbits);
+            
+            List<string> san = GetPath(orbitalParent, "SAN");
+            List<string> you = GetPath(orbitalParent, "YOU");
+
+            var list1 = san.Except(you).ToList();
+            var list2 = you.Except(san).ToList();
+
+            return list1.Count + list2.Count;
         }
 
         public static int CountPaths(Dictionary<string, string> dictionary, string Sattelite)
