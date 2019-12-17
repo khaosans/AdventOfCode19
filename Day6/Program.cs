@@ -8,40 +8,50 @@ namespace Day6
     {
         static void Main(string[] args)
         {
+            //List<Orbit> orbits = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day6/ExamplePart2.txt".ParseOrbits();
             List<Orbit> orbits = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day6/day6.txt".ParseOrbits();
 
-         //   var dictionary = CreateOrbitalMap(orbits);
+            var orbitalParent = CreateOrbitalParent(orbits);
 
-         Dictionary<string,string> orbitalParent = CreateOrbitalParent(orbits);
+            List<string> san = GetPath(orbitalParent, "SAN");
+            List<string> you = GetPath(orbitalParent, "YOU");
 
-         int shouldBe3 = GetPaths(orbitalParent, "D");
+            var list1 = san.Except(you).ToList();
+            var list2 = you.Except(san).ToList();
 
-         int ShouldBe7 = GetPaths(orbitalParent, "L");
+            var minOrbitt = list1.Count +list2.Count;
+            Console.Out.WriteLine(minOrbitt);
+            
+            
 
-         int paths = GetPaths(orbitalParent, "COM");
-
-         int count = 0;
-
-         foreach (var orbit in orbits)
-         {
-             count += GetPaths(orbitalParent,orbit.Child);
-             
-         }
-         
-         
+            // var max = Math.Max(list1.Count, list2.Count) -1;
 
 
+            //var minOrbs = Math.Max(lessMatch.Count, sanMatch.Count);
 
-         Console.Out.WriteLine("count " + count);
+
+            /*int shouldBe3 = CountPaths(orbitalParent, "D");
+   
+            int ShouldBe7 = CountPaths(orbitalParent, "L");
+   
+            int paths = CountPaths(orbitalParent, "COM");
+   
+            int count = 0;
+   
+            foreach (var orbit in orbits)
+            {
+                count += CountPaths(orbitalParent,orbit.Child);
+                
+            }*/
         }
 
-        public static int GetPaths(Dictionary<string, string> dictionary, string Sattelite)
+        public static int CountPaths(Dictionary<string, string> dictionary, string Sattelite)
         {
-            if (!dictionary.ContainsKey(Sattelite) )
+            if (!dictionary.ContainsKey(Sattelite))
             {
                 return 0;
             }
-            
+
             var count = 1;
             while (dictionary[Sattelite] != "COM")
             {
@@ -52,23 +62,26 @@ namespace Day6
             return count;
         }
 
-        public static int GetCount(Dictionary<string, List<string>> dictionary, List<Orbit> orbits, int counter)
+        public static List<string> GetPath(Dictionary<string, string> dictionary, string sattelite)
         {
-            if (orbits.Count == 0)
+            List<string> paths = new List<string>();
+            if (!dictionary.ContainsKey(sattelite))
             {
-                return counter;
+                return paths;
             }
 
-            if (dictionary.ContainsKey(orbits.First().Child))
+            while (sattelite != null && dictionary.ContainsKey(sattelite) && dictionary[sattelite] != sattelite)
             {
-                List<string> children = dictionary[orbits.First().Child];
-                return counter + GetCount(dictionary, orbits.Skip(1).ToList(), counter + children.Count);
+                string collection = dictionary[sattelite];
+                paths.Add(collection);
+                sattelite = dictionary[sattelite];
             }
 
-            return GetCount(dictionary, orbits.Skip(1).ToList(), counter);
+            return paths;
         }
 
 
+        /*
         private static Dictionary<string, List<string>> CreateOrbitalMap(List<Orbit> orbits)
         {
             Dictionary<string, List<string>> dictionary = new Dictionary<string, List<string>>();
@@ -87,6 +100,7 @@ namespace Day6
 
             return dictionary;
         }
+        */
 
         private static Dictionary<string, string> CreateOrbitalParent(List<Orbit> orbits)
         {
