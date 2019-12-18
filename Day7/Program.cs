@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Day5V2;
 using Microsoft.VisualBasic;
@@ -14,58 +15,70 @@ namespace Day7
         {
             //  var csvString = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7part2.txt".ParseCsvString();
 
-            var code = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7Part1test.txt".ParseCsvString();
+            // Test1();
 
-            List<int> digits = new List<int> {0, 1, 2, 3, 4, 5};
 
-            var permutations = GetPermutations(digits, 6).ToList();
+            var code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7part1.txt".ParseCsvString();
 
-            double max = 0;
-            
-            List<int> phase = new List<int>();
-            foreach (var permutation in permutations)
+            var max2 = GetMaxPhaseSettings(code2);
+
+
+            Console.Out.WriteLine(max2.Item2);
+        }
+
+        private static void Test1()
+        {
+            var code1 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7Part1test.txt".ParseCsvString();
+
+
+            var max = GetMaxPhaseSettings(code1);
+
+            if (max.Item1 == new List<int> {4, 3, 2, 1, 0})
             {
-                var phaseSetting1 = permutation.ToList();
+                Console.Out.WriteLine("Pass");
+            }
+        }
 
-                var ints0 = Run(code,0);
-                var ints1 = Run(ints0, phaseSetting1[0]);
-                var ints2 = Run(ints1, phaseSetting1[1]);
-                var ints3 = Run(ints2, phaseSetting1[2]);
-                var ints4 = Run(ints3, phaseSetting1[3]);
-                var ints5 = Run(ints4, phaseSetting1[4]);
+        private static (List<int>, BigInteger ) GetMaxPhaseSettings(List<int> code)
+        {
+            List<int> digits = new List<int> {0, 1, 2, 3, 4};
+
+            var permutations = GetPermutations(digits, digits.Count).ToList();
+
+            BigInteger max = 0;
+
+            var phase = new List<int>();
+            var count = 0;
+            foreach (var permutation in permutations.ToList().ToList())
+            {
+                Console.Out.WriteLine($"iteration {count}");
+                var phaseList = permutation.ToList();
 
 
-                List<string> list1 = ints5.Select(x=> x.ToString()).ToList();
-                var list = list1.Select(x => x.ToString()).ToArray();
+                var ints1 = Run(code, 0,  phaseList[0] );
+                var ints2 = Run(code, ints1.logger.First(),  phaseList[1]);
+                var ints3 = Run(code, ints2.logger.First(),  phaseList[2]);
+                var ints4 = Run(code, ints3.logger.First(),  phaseList[3]);
+                var ints5 = Run(code, ints4.logger.First(),  phaseList[4]);
 
-                string join = String.Join("",list1);
 
-
-                double output = 0;
-                try
+                var bigInteger = ints5.logger.First();
+                if (max < bigInteger)
                 {
-                    output = Convert.ToDouble(join);
-                }
-                catch
-                {
-                    Console.Out.WriteLine($"j {join}");
+                    max = bigInteger;
+                    phase = phaseList;
                 }
 
-                if (max < output)
-                {
-                    max = output;
-                    phase = phaseSetting1;
-                }
+                count++;
             }
 
 
-            Console.Out.WriteLine($"{max}");
-            Console.Out.WriteLine($"{phase}");
+            return (phase, max);
         }
 
 
         static IEnumerable<IEnumerable<T>>
-            GetPermutations<T>(IEnumerable<T> list, int length)
+            GetPermutations<T>(List<T> list, int length)
         {
             if (length == 1) return list.Select(t => new[] {t});
 
@@ -75,13 +88,19 @@ namespace Day7
                     (t1, t2) => t1.Concat(new[] {t2}));
         }
 
-     
-        public static readonly Func<List<int>, int, List<int>> Run = (code, input) =>
+
+        public static ( List<int> code, List<int> logger) Run(List<int> code, int input, int phase = 0, bool isAmpA = false)
         {
             int skip = 0;
             int idx = 0;
+
+            int lineNumber = 1;
             List<int> line;
-            
+
+            int inputCounter = 0;
+
+            List<int> logger = new List<int>();
+
             while (idx < code.Count)
             {
                 var opCodeAndParamModes = code[idx];
@@ -110,7 +129,7 @@ namespace Day7
                 if (line.First() == 99)
                 {
                     Console.Out.WriteLine("HALT 99");
-                    return code;
+                    return (code, logger);
                 }
 
                 Instruction instruction = CreateInstruction(line, opCode, mode1, mode2, mode3);
@@ -119,21 +138,25 @@ namespace Day7
 
 
                 var current = idx;
-                code = OpCode(opCode, modeAndParams, code, line, idx, out idx, input, valueToInc, out valueToInc);
+                (List<int> code, List<int> logger) outPut;
+
+                outPut = OpCode(opCode, modeAndParams, code, line, idx, out idx, input, valueToInc, out valueToInc, logger, ref inputCounter, phase, isAmpA);
+                code = outPut.code;
+
                 var newIndex = idx;
 
                 if (current != newIndex)
                 {
                     continue;
-                    
                 }
 
                 idx += valueToInc;
+                lineNumber++;
             }
 
             Console.Out.WriteLine("HALT <");
-            return code;
-        };
+            return (code, logger);
+        }
 
 
         private static int GetValueForModeAndParamMode(ModeAndParam modeAndParam, List<int> code)
@@ -147,8 +170,10 @@ namespace Day7
         }
 
 
-        public static List<int> OpCode(int operation, List<ModeAndParam> modeAndParams, List<int> code, List<int> line, in int currentIndex, out int newIndex, int input, in int currentValueToInc
-            , out int newValueToInc)
+        public static (List<int> code, List<int> logger) OpCode(int operation, List<ModeAndParam> modeAndParams, List<int> code, List<int> line, in int currentIndex, out int newIndex, int input,
+            in int currentValueToInc
+            , out int newValueToInc,
+            List<int> log, ref int inputCounter, int phase, bool isAmpA)
         {
             /*
              * Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
@@ -165,18 +190,30 @@ namespace Day7
                 case (1, _):
                     value = GetValueForModeAndParamMode(modeAndParams[0], code) + GetValueForModeAndParamMode(modeAndParams[1], code);
                     code[line[3]] = value;
-                    return code;
+                    return (code, log);
                 case (2, _):
                     value = GetValueForModeAndParamMode(modeAndParams[0], code) * GetValueForModeAndParamMode(modeAndParams[1], code);
                     code[line[3]] = value;
-                    return code;
+                    return (code, log);
                 case (3, _):
-                    code[modeAndParams[0].Parameter] = input;
-                    return code;
+                    inputCounter++;
+                    if (inputCounter == 1)
+                    {
+                        code[modeAndParams[0].Parameter] = phase;
+                    }
+                    else
+                    {
+                        code[modeAndParams[0].Parameter] = input;
+                    }
+
+                    return (code, log);
                 case (4, _):
                     value = code[modeAndParams[0].Parameter];
+
                     Console.Out.WriteLine(value);
-                    return code;
+                    log.Add(value);
+
+                    return (code, log);
                 case (5, _):
                     //Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
                     if (GetValueForModeAndParamMode(modeAndParams[0], code) != 0)
@@ -188,7 +225,7 @@ namespace Day7
                         newIndex += 3;
                     }
 
-                    return code;
+                    return (code, log);
                 case (6, _):
                     //Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
 
@@ -201,7 +238,7 @@ namespace Day7
                         newIndex += 3;
                     }
 
-                    return code;
+                    return (code, log);
                 //  Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
 
                 case (7, _):
@@ -215,7 +252,7 @@ namespace Day7
                     }
 
 
-                    return code;
+                    return (code, log);
                 //   Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
                 case (8, _):
                     if (GetValueForModeAndParamMode(modeAndParams[0], code) == GetValueForModeAndParamMode(modeAndParams[1], code))
@@ -227,7 +264,7 @@ namespace Day7
                         code[modeAndParams[2].Parameter] = 0;
                     }
 
-                    return code;
+                    return (code, log);
 
                 default:
                     throw new NotImplementedException("op ope code " + operation + " line " + line + "index " + newIndex);
@@ -263,7 +300,7 @@ namespace Day7
 
         public static Instruction CreateInstruction(List<int> line, int opCode, int mode1, int mode2, int mode3)
         {
-            if (opCode == 3 || opCode == 4)
+            if (opCode == 3 || opCode == 4 || line.Count == 2)
             {
                 return new Instruction(new List<int> {mode1}, new List<int> {line[1]}, opCode);
             }
