@@ -31,33 +31,31 @@ namespace Day7
 
 
             var max = GetMaxPhaseSettings(code1);
-
-            if (max.Item1 == new List<int> {4, 3, 2, 1, 0})
-            {
-                Console.Out.WriteLine("Pass");
-            }
         }
 
-        private static (List<int>, BigInteger ) GetMaxPhaseSettings(List<int> code)
+        private static BigInteger GetMaxPhaseSettings(List<int> code)
         {
             BigInteger max = 0;
 
             var phase = new List<int>();
             var count = 0;
 
-            int initial = new Comp(code, 0, 9).Run(false);
 
             foreach (var permutation in Enumerable.Range(0, 1))
             {
                 var phaseList = new List<int> {9, 8, 7, 6, 5};
 
-                BigInteger? previous = null;
-
-                foreach (var p in phaseList.Skip(1))
-                {
-                    BigInteger input = previous ?? initial;
-                    previous = new Comp(code, (int) input, p).Run(false);
-                }
+                int previous = 0;
+                while (new Comp(code, previous, 5).IsHalted)
+                    foreach (var p in phaseList.Skip(1))
+                    {
+                        Comp comp = new Comp(code, 0, p);
+                        var output = comp.Run();
+                        if (comp.IsHalted)
+                        {
+                            previous = new Comp(code, output, 9).Run();
+                        }
+                    }
 
 
                 if (previous != null && max < previous)
@@ -69,20 +67,25 @@ namespace Day7
                 count++;
             }
 
-
-            return (phase, max);
+            return 1;
         }
-
 
         static IEnumerable<IEnumerable<T>>
             GetPermutations<T>(List<T> list, int length)
         {
-            if (length == 1) return list.Select(t => new[] {t});
+            if (length == 1)
+                return list.Select(t => new[]
+                {
+                    t
+                });
 
             var enumerable = list.ToList();
             return GetPermutations(enumerable, length - 1)
                 .SelectMany(t => enumerable.Where(e => !t.Contains(e)),
-                    (t1, t2) => t1.Concat(new[] {t2}));
+                    (t1, t2) => t1.Concat(new[]
+                    {
+                        t2
+                    }));
         }
 
 
@@ -91,7 +94,7 @@ namespace Day7
             public List<int> Code;
             public int Input;
             public int Phase;
-            public bool IsHalted;
+            public bool IsHalted { get; set; }
 
             public Comp(List<int> code, int input, int phase)
             {
@@ -100,7 +103,7 @@ namespace Day7
                 Phase = phase;
             }
 
-            public int Run(bool halted = false)
+            public int Run()
             {
                 int output;
                 int idx = 0;
@@ -110,7 +113,7 @@ namespace Day7
                 {
                     output = OpCode(ref idx, Input, ref inputCounter, Phase);
 
-                    if (halted)
+                    if (IsHalted)
                     {
                         return output;
                     }
