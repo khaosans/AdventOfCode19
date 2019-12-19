@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Xml.Resolvers;
 using Day5V2;
 using Microsoft.VisualBasic;
 
@@ -18,12 +20,9 @@ namespace Day7
             // Test1();
 
 
-            var code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7part1.txt".ParseCsvString();
+            var code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/Part2.txt".ParseCsvString();
 
             var max2 = GetMaxPhaseSettings(code2);
-
-
-            Console.Out.WriteLine(max2.Item2);
         }
 
         private static void Test1()
@@ -41,31 +40,29 @@ namespace Day7
 
         private static (List<int>, BigInteger ) GetMaxPhaseSettings(List<int> code)
         {
-            List<int> digits = new List<int> {0, 1, 2, 3, 4};
-
-            var permutations = GetPermutations(digits, digits.Count).ToList();
-
             BigInteger max = 0;
 
             var phase = new List<int>();
             var count = 0;
-            foreach (var permutation in permutations.ToList().ToList())
+
+            int initial = new Comp(code, 0, 9).Run(false);
+
+            foreach (var permutation in Enumerable.Range(0, 1))
             {
-                Console.Out.WriteLine($"iteration {count}");
-                var phaseList = permutation.ToList();
+                var phaseList = new List<int> {9, 8, 7, 6, 5};
 
+                BigInteger? previous = null;
 
-                var ints1 = Run(code, 0,  phaseList[0] );
-                var ints2 = Run(code, ints1.logger.First(),  phaseList[1]);
-                var ints3 = Run(code, ints2.logger.First(),  phaseList[2]);
-                var ints4 = Run(code, ints3.logger.First(),  phaseList[3]);
-                var ints5 = Run(code, ints4.logger.First(),  phaseList[4]);
-
-
-                var bigInteger = ints5.logger.First();
-                if (max < bigInteger)
+                foreach (var p in phaseList.Skip(1))
                 {
-                    max = bigInteger;
+                    BigInteger input = previous ?? initial;
+                    previous = new Comp(code, (int) input, p).Run(false);
+                }
+
+
+                if (previous != null && max < previous)
+                {
+                    max = (int) previous;
                     phase = phaseList;
                 }
 
@@ -89,229 +86,213 @@ namespace Day7
         }
 
 
-        public static ( List<int> code, List<int> logger) Run(List<int> code, int input, int phase = 0, bool isAmpA = false)
+        public class Comp
         {
-            int skip = 0;
-            int idx = 0;
+            public List<int> Code;
+            public int Input;
+            public int Phase;
+            public bool IsHalted;
 
-            int lineNumber = 1;
-            List<int> line;
-
-            int inputCounter = 0;
-
-            List<int> logger = new List<int>();
-
-            while (idx < code.Count)
+            public Comp(List<int> code, int input, int phase)
             {
-                var opCodeAndParamModes = code[idx];
+                Code = new List<int>(code);
+                Input = input;
+                Phase = phase;
+            }
 
-                int opCode = opCodeAndParamModes % 100;
-                int mode1 = opCodeAndParamModes / 100 % 10;
-                int mode2 = opCodeAndParamModes / 1000 % 10;
-                int mode3 = opCodeAndParamModes / 10000 % 10;
+            public int Run(bool halted = false)
+            {
+                int output;
+                int idx = 0;
+                int inputCounter = 0;
 
-                int valueToInc;
-
-                line = code.Skip(idx + skip).ToList();
-
-                if (opCode == 3 || opCode == 4)
+                while (idx < Code.Count)
                 {
-                    valueToInc = 2;
-                }
-                else
-                {
-                    valueToInc = 4;
+                    output = OpCode(ref idx, Input, ref inputCounter, Phase);
+
+                    if (halted)
+                    {
+                        return output;
+                    }
                 }
 
-                line = line.Take(valueToInc).ToList();
+                throw new NotImplementedException();
+            }
 
 
-                if (line.First() == 99)
+            private static int GetValueForModeAndParamMode(ModeAndParam modeAndParam, List<int> code)
+            {
+                return modeAndParam.Mode == 0 ? code[modeAndParam.Parameter] : modeAndParam.Parameter;
+            }
+
+            public int OpCode(
+                ref int currentIndex,
+                int input,
+                ref int inputCounter,
+                int phase)
+            {
+                int value;
+
+                List<int> line;
+                int outputCount = 0;
+
+                List<(int, bool)> prrinted = new List<(int, bool)>();
+                while (!IsHalted)
                 {
-                    Console.Out.WriteLine("HALT 99");
-                    return (code, logger);
+                    var opCodeAndParamModes = Code[currentIndex];
+                    int opCode = opCodeAndParamModes % 100;
+
+                    if (opCode == 99)
+                    {
+                        IsHalted = true;
+                    }
+
+                    int mode1 = opCodeAndParamModes / 100 % 10;
+                    int mode2 = opCodeAndParamModes / 1000 % 10;
+                    int mode3 = opCodeAndParamModes / 10000 % 10;
+
+                    List<ModeAndParam> modeAndParams = CreateInstruction(Code.Skip(currentIndex).ToList(), opCode, mode1, mode2, mode3).Mode
+                        .Zip(CreateInstruction(Code.Skip(currentIndex).ToList(), opCode, mode1, mode2, mode3).Parameters)
+                        .Select(x => new ModeAndParam(x.Second, x.First)).ToList();
+
+                    line = Code.Skip(currentIndex).ToList();
+
+
+                    switch (opCode)
+                    {
+                        case 99:
+                            IsHalted = true;
+                            break;
+                        case 1:
+                            value = GetValueForModeAndParamMode(modeAndParams[0], Code) + GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            Code[line[3]] = value;
+                            currentIndex += 4;
+                            break;
+                        case 2:
+                            value = GetValueForModeAndParamMode(modeAndParams[0], Code) * GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            Code[line[3]] = value;
+                            currentIndex += 4;
+                            break;
+                        case 3:
+                            inputCounter++;
+                            if (inputCounter == 1)
+                            {
+                                Code[modeAndParams[0].Parameter] = phase;
+                            }
+                            else
+                            {
+                                Code[modeAndParams[0].Parameter] = input;
+                            }
+
+                            currentIndex += 2;
+
+                            break;
+                        case 4:
+                            value = Code[modeAndParams[0].Parameter];
+                            currentIndex += 2;
+                            prrinted.Add((value, true));
+                            IsHalted = true;
+                            break;
+                        case 5:
+                            if (GetValueForModeAndParamMode(modeAndParams[0], Code) != 0)
+                            {
+                                currentIndex = GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            }
+                            else
+                            {
+                                currentIndex += 3;
+                            }
+
+                            break;
+                        case 6:
+
+                            if (GetValueForModeAndParamMode(modeAndParams[0], Code) == 0)
+                            {
+                                currentIndex = GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            }
+                            else
+                            {
+                                currentIndex += 3;
+                            }
+
+                            break;
+                        case 7:
+                            if (GetValueForModeAndParamMode(modeAndParams[0], Code) < GetValueForModeAndParamMode(modeAndParams[1], Code))
+                            {
+                                Code[modeAndParams[2].Parameter] = 1;
+                            }
+                            else
+                            {
+                                Code[modeAndParams[2].Parameter] = 0;
+                            }
+
+                            currentIndex += 4;
+
+                            break;
+
+
+                        case 8:
+                            if (GetValueForModeAndParamMode(modeAndParams[0], Code) == GetValueForModeAndParamMode(modeAndParams[1], Code))
+                            {
+                                Code[modeAndParams[2].Parameter] = 1;
+                            }
+                            else
+                            {
+                                Code[modeAndParams[2].Parameter] = 0;
+                            }
+
+                            currentIndex += 4;
+                            break;
+                        default:
+                            throw new NotImplementedException("opcode " + opCode + " line " + line + "index " + currentIndex);
+                    }
                 }
 
-                Instruction instruction = CreateInstruction(line, opCode, mode1, mode2, mode3);
+                return prrinted.Single(x => x.Item2).Item1;
+            }
 
-                List<ModeAndParam> modeAndParams = instruction.Mode.Zip(instruction.Parameters).Select(x => new ModeAndParam(x.Second, x.First)).ToList();
 
+            public class ModeAndParam
+            {
+                public int Mode { get; }
+                public int Parameter { get; }
 
-                var current = idx;
-                (List<int> code, List<int> logger) outPut;
-
-                outPut = OpCode(opCode, modeAndParams, code, line, idx, out idx, input, valueToInc, out valueToInc, logger, ref inputCounter, phase, isAmpA);
-                code = outPut.code;
-
-                var newIndex = idx;
-
-                if (current != newIndex)
+                public ModeAndParam(int param, int mode = 0)
                 {
-                    continue;
+                    Mode = mode;
+                    Parameter = param;
+                }
+            }
+
+            public class Instruction
+            {
+                public List<int> Mode { get; set; }
+                public int Op { get; set; }
+                public List<int> Parameters { get; set; }
+
+                public Instruction(List<int> mode, List<int> parameters, int op)
+                {
+                    Mode = mode;
+                    Op = op;
+                    Parameters = parameters;
+                }
+            }
+
+            public static Instruction CreateInstruction(List<int> parameters, int opCode, int mode1, int mode2, int mode3)
+            {
+                if (opCode == 3 || opCode == 4 || parameters.Count == 2)
+                {
+                    return new Instruction(new List<int> {mode1}, new List<int> {parameters[1]}, opCode);
                 }
 
-                idx += valueToInc;
-                lineNumber++;
+                return new Instruction(new List<int>
+                {
+                    mode1, mode2, mode3
+                }, new List<int>
+                {
+                    parameters[1], parameters[2], parameters[3]
+                }, opCode);
             }
-
-            Console.Out.WriteLine("HALT <");
-            return (code, logger);
-        }
-
-
-        private static int GetValueForModeAndParamMode(ModeAndParam modeAndParam, List<int> code)
-        {
-            return modeAndParam.Mode == 0 ? code[modeAndParam.Parameter] : modeAndParam.Parameter;
-        }
-
-        (int, int) GetValueForModeAndParamModeAndIndex(ModeAndParam modeAndParam, List<int> code)
-        {
-            return modeAndParam.Mode == 0 ? (modeAndParam.Parameter, code[modeAndParam.Parameter]) : (2, modeAndParam.Parameter);
-        }
-
-
-        public static (List<int> code, List<int> logger) OpCode(int operation, List<ModeAndParam> modeAndParams, List<int> code, List<int> line, in int currentIndex, out int newIndex, int input,
-            in int currentValueToInc
-            , out int newValueToInc,
-            List<int> log, ref int inputCounter, int phase, bool isAmpA)
-        {
-            /*
-             * Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
-               Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
-               Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
-               Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
-             */
-            int value;
-            newIndex = currentIndex;
-            newValueToInc = currentValueToInc;
-
-            switch (operation, line)
-            {
-                case (1, _):
-                    value = GetValueForModeAndParamMode(modeAndParams[0], code) + GetValueForModeAndParamMode(modeAndParams[1], code);
-                    code[line[3]] = value;
-                    return (code, log);
-                case (2, _):
-                    value = GetValueForModeAndParamMode(modeAndParams[0], code) * GetValueForModeAndParamMode(modeAndParams[1], code);
-                    code[line[3]] = value;
-                    return (code, log);
-                case (3, _):
-                    inputCounter++;
-                    if (inputCounter == 1)
-                    {
-                        code[modeAndParams[0].Parameter] = phase;
-                    }
-                    else
-                    {
-                        code[modeAndParams[0].Parameter] = input;
-                    }
-
-                    return (code, log);
-                case (4, _):
-                    value = code[modeAndParams[0].Parameter];
-
-                    Console.Out.WriteLine(value);
-                    log.Add(value);
-
-                    return (code, log);
-                case (5, _):
-                    //Opcode 5 is jump-if-true: if the first parameter is non-zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
-                    if (GetValueForModeAndParamMode(modeAndParams[0], code) != 0)
-                    {
-                        newIndex = GetValueForModeAndParamMode(modeAndParams[1], code);
-                    }
-                    else
-                    {
-                        newIndex += 3;
-                    }
-
-                    return (code, log);
-                case (6, _):
-                    //Opcode 6 is jump-if-false: if the first parameter is zero, it sets the instruction pointer to the value from the second parameter. Otherwise, it does nothing.
-
-                    if (GetValueForModeAndParamMode(modeAndParams[0], code) == 0)
-                    {
-                        newIndex = GetValueForModeAndParamMode(modeAndParams[1], code);
-                    }
-                    else
-                    {
-                        newIndex += 3;
-                    }
-
-                    return (code, log);
-                //  Opcode 7 is less than: if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
-
-                case (7, _):
-                    if (GetValueForModeAndParamMode(modeAndParams[0], code) < GetValueForModeAndParamMode(modeAndParams[1], code))
-                    {
-                        code[modeAndParams[2].Parameter] = 1;
-                    }
-                    else
-                    {
-                        code[modeAndParams[2].Parameter] = 0;
-                    }
-
-
-                    return (code, log);
-                //   Opcode 8 is equals: if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
-                case (8, _):
-                    if (GetValueForModeAndParamMode(modeAndParams[0], code) == GetValueForModeAndParamMode(modeAndParams[1], code))
-                    {
-                        code[modeAndParams[2].Parameter] = 1;
-                    }
-                    else
-                    {
-                        code[modeAndParams[2].Parameter] = 0;
-                    }
-
-                    return (code, log);
-
-                default:
-                    throw new NotImplementedException("op ope code " + operation + " line " + line + "index " + newIndex);
-            }
-        }
-
-
-        public class ModeAndParam
-        {
-            public int Mode { get; }
-            public int Parameter { get; }
-
-            public ModeAndParam(int param, int mode = 0)
-            {
-                Mode = mode;
-                Parameter = param;
-            }
-        }
-
-        public class Instruction
-        {
-            public List<int> Mode { get; set; }
-            public int Op { get; set; }
-            public List<int> Parameters { get; set; }
-
-            public Instruction(List<int> mode, List<int> parameters, int op)
-            {
-                Mode = mode;
-                Op = op;
-                Parameters = parameters;
-            }
-        }
-
-        public static Instruction CreateInstruction(List<int> line, int opCode, int mode1, int mode2, int mode3)
-        {
-            if (opCode == 3 || opCode == 4 || line.Count == 2)
-            {
-                return new Instruction(new List<int> {mode1}, new List<int> {line[1]}, opCode);
-            }
-
-            return new Instruction(new List<int>
-            {
-                mode1, mode2, mode3
-            }, new List<int>
-            {
-                line[1], line[2], line[3]
-            }, opCode);
         }
     }
 }
