@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Resolvers;
 using Day5V2;
 using Microsoft.VisualBasic;
@@ -15,59 +16,41 @@ namespace Day7
     {
         static void Main(string[] args)
         {
-            //  var csvString = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7part2.txt".ParseCsvString();
+            List<int> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/Part2.txt".ParseCsvString();
 
-            // Test1();
+            List<Computer> computers = CreateComputers(code2);
 
+            int computerOutputValue = 0;
 
-            var code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/Part2.txt".ParseCsvString();
-
-            var max2 = GetMaxPhaseSettings(code2);
-        }
-
-        private static void Test1()
-        {
-            var code1 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/day7Part1test.txt".ParseCsvString();
-
-
-            var max = GetMaxPhaseSettings(code1);
-        }
-
-        private static BigInteger GetMaxPhaseSettings(List<int> code)
-        {
-            BigInteger max = 0;
-
-            var phase = new List<int>();
-            var count = 0;
-
-
-            foreach (var permutation in Enumerable.Range(0, 1))
+            while (!computers.Last().IsHalted)
             {
-                var phaseList = new List<int> {9, 8, 7, 6, 5};
-
-                int previous = 0;
-                while (new Comp(code, previous, 5).IsHalted)
-                    foreach (var p in phaseList.Skip(1))
-                    {
-                        Comp comp = new Comp(code, 0, p);
-                        var output = comp.Run();
-                        if (comp.IsHalted)
-                        {
-                            previous = new Comp(code, output, 9).Run();
-                        }
-                    }
-
-
-                if (previous != null && max < previous)
+                for (int i = 0; i < computers.Count; i++)
                 {
-                    max = (int) previous;
-                    phase = phaseList;
+                    Computer mutatedComputer = computers[i].Run(computerOutputValue);
+                    computers[i] = mutatedComputer;
+                    computerOutputValue = mutatedComputer.OutputValue;
                 }
-
-                count++;
             }
 
-            return 1;
+            Console.Out.WriteLine($"Max {computers.Last().OutputHistory.Last()}" );
+        }
+
+        private static List<Computer> CreateComputers(List<int> code)
+        {
+            List<Computer> computers = new List<Computer>();
+            List<int> permutations = new List<int> {9, 8, 7, 6, 5};
+            permutations.Reverse();
+            
+            var stackOfPhases = new Stack<int>(permutations);
+
+            computers.Add(new Computer(code, stackOfPhases.Pop()));
+
+            while (stackOfPhases.Count > 0)
+            {
+                computers.Add(new Computer(code, stackOfPhases.Pop()));
+            }
+
+            return computers;
         }
 
         static IEnumerable<IEnumerable<T>>
@@ -81,7 +64,8 @@ namespace Day7
 
             var enumerable = list.ToList();
             return GetPermutations(enumerable, length - 1)
-                .SelectMany(t => enumerable.Where(e => !t.Contains(e)),
+                .SelectMany(t => enumerable
+                        .Where(e => !t.Contains(e)),
                     (t1, t2) => t1.Concat(new[]
                     {
                         t2
@@ -89,121 +73,130 @@ namespace Day7
         }
 
 
-        public class Comp
+        public class Computer
         {
             public List<int> Code;
-            public int Input;
-            public int Phase;
             public bool IsHalted { get; set; }
+            public bool IsPaused { get; set; }
+            public int InstructionPointer { get; set; }
+            public int OutputValue { get; set; }
+            public List<int> OutputHistory = new List<int>();
+            public int Phase;
+            private Instruction _intstruction;
+            private List<int> _line;
+            private List<int> inputs = new List<int>();
 
-            public Comp(List<int> code, int input, int phase)
+            protected bool Equals(Computer other)
             {
+                return Equals(Code, other.Code) && Equals(OutputHistory, other.OutputHistory) && Phase == other.Phase && Equals(_intstruction, other._intstruction) && Equals(_line, other._line) &&
+                       Equals(inputs, other.inputs) && IsHalted == other.IsHalted && IsPaused == other.IsPaused && InstructionPointer == other.InstructionPointer && OutputValue == other.OutputValue;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((Computer) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                var hashCode = new HashCode();
+                hashCode.Add(Code);
+                hashCode.Add(OutputHistory);
+                hashCode.Add(Phase);
+                hashCode.Add(_intstruction);
+                hashCode.Add(_line);
+                hashCode.Add(inputs);
+                hashCode.Add(IsHalted);
+                hashCode.Add(IsPaused);
+                hashCode.Add(InstructionPointer);
+                hashCode.Add(OutputValue);
+                return hashCode.ToHashCode();
+            }
+
+            public Computer(List<int> code, int phase)
+            {
+                IsHalted = false;
                 Code = new List<int>(code);
-                Input = input;
+                InstructionPointer = 0;
+                IsPaused = false;
                 Phase = phase;
             }
-
-            public int Run()
-            {
-                int output;
-                int idx = 0;
-                int inputCounter = 0;
-
-                while (idx < Code.Count)
-                {
-                    output = OpCode(ref idx, Input, ref inputCounter, Phase);
-
-                    if (IsHalted)
-                    {
-                        return output;
-                    }
-                }
-
-                throw new NotImplementedException();
-            }
-
 
             private static int GetValueForModeAndParamMode(ModeAndParam modeAndParam, List<int> code)
             {
                 return modeAndParam.Mode == 0 ? code[modeAndParam.Parameter] : modeAndParam.Parameter;
             }
 
-            public int OpCode(
-                ref int currentIndex,
-                int input,
-                ref int inputCounter,
-                int phase)
+
+            public Computer Run(int input)
             {
-                int value;
-
-                List<int> line;
-                int outputCount = 0;
-
-                List<(int, bool)> prrinted = new List<(int, bool)>();
-                while (!IsHalted)
+                IsPaused = false;
+                inputs.Add(input);
+                while (!IsPaused || !IsHalted)
                 {
-                    var opCodeAndParamModes = Code[currentIndex];
+                    var opCodeAndParamModes = Code[InstructionPointer];
+
                     int opCode = opCodeAndParamModes % 100;
-
-                    if (opCode == 99)
-                    {
-                        IsHalted = true;
-                    }
-
                     int mode1 = opCodeAndParamModes / 100 % 10;
                     int mode2 = opCodeAndParamModes / 1000 % 10;
                     int mode3 = opCodeAndParamModes / 10000 % 10;
 
-                    List<ModeAndParam> modeAndParams = CreateInstruction(Code.Skip(currentIndex).ToList(), opCode, mode1, mode2, mode3).Mode
-                        .Zip(CreateInstruction(Code.Skip(currentIndex).ToList(), opCode, mode1, mode2, mode3).Parameters)
+                    _intstruction = CreateInstruction(Code.Skip(InstructionPointer).ToList(), opCode, mode1, mode2, mode3);
+                    List<ModeAndParam> modeAndParams = _intstruction.Mode
+                        .Zip(_intstruction.Parameters)
                         .Select(x => new ModeAndParam(x.Second, x.First)).ToList();
 
-                    line = Code.Skip(currentIndex).ToList();
+                    _line = Code.Skip(InstructionPointer).ToList();
 
+                    if (_intstruction.Op == 99)
+                    {
+                        IsHalted = true;
+                        return this;
+                    }
 
                     switch (opCode)
                     {
-                        case 99:
-                            IsHalted = true;
-                            break;
                         case 1:
-                            value = GetValueForModeAndParamMode(modeAndParams[0], Code) + GetValueForModeAndParamMode(modeAndParams[1], Code);
-                            Code[line[3]] = value;
-                            currentIndex += 4;
+                            OutputValue = GetValueForModeAndParamMode(modeAndParams[0], Code) + GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            Code[_line[3]] = OutputValue;
+                            InstructionPointer += 4;
                             break;
                         case 2:
-                            value = GetValueForModeAndParamMode(modeAndParams[0], Code) * GetValueForModeAndParamMode(modeAndParams[1], Code);
-                            Code[line[3]] = value;
-                            currentIndex += 4;
+                            OutputValue = GetValueForModeAndParamMode(modeAndParams[0], Code) * GetValueForModeAndParamMode(modeAndParams[1], Code);
+                            Code[_line[3]] = OutputValue;
+                            InstructionPointer += 4;
                             break;
                         case 3:
-                            inputCounter++;
-                            if (inputCounter == 1)
+                            OutputValue++;
+                            if (OutputValue == 1)
                             {
-                                Code[modeAndParams[0].Parameter] = phase;
+                                Code[modeAndParams[0].Parameter] = Phase;
                             }
                             else
                             {
                                 Code[modeAndParams[0].Parameter] = input;
                             }
 
-                            currentIndex += 2;
+                            InstructionPointer += 2;
 
                             break;
                         case 4:
-                            value = Code[modeAndParams[0].Parameter];
-                            currentIndex += 2;
-                            prrinted.Add((value, true));
-                            IsHalted = true;
-                            break;
+                            OutputValue = Code[modeAndParams[0].Parameter];
+                            InstructionPointer += 2;
+                            OutputHistory.Add(OutputValue);
+                            IsPaused = true;
+                            return this;
                         case 5:
                             if (GetValueForModeAndParamMode(modeAndParams[0], Code) != 0)
                             {
-                                currentIndex = GetValueForModeAndParamMode(modeAndParams[1], Code);
+                                InstructionPointer = GetValueForModeAndParamMode(modeAndParams[1], Code);
                             }
                             else
                             {
-                                currentIndex += 3;
+                                InstructionPointer += 3;
                             }
 
                             break;
@@ -211,11 +204,11 @@ namespace Day7
 
                             if (GetValueForModeAndParamMode(modeAndParams[0], Code) == 0)
                             {
-                                currentIndex = GetValueForModeAndParamMode(modeAndParams[1], Code);
+                                InstructionPointer = GetValueForModeAndParamMode(modeAndParams[1], Code);
                             }
                             else
                             {
-                                currentIndex += 3;
+                                InstructionPointer += 3;
                             }
 
                             break;
@@ -229,10 +222,9 @@ namespace Day7
                                 Code[modeAndParams[2].Parameter] = 0;
                             }
 
-                            currentIndex += 4;
+                            InstructionPointer += 4;
 
                             break;
-
 
                         case 8:
                             if (GetValueForModeAndParamMode(modeAndParams[0], Code) == GetValueForModeAndParamMode(modeAndParams[1], Code))
@@ -244,14 +236,16 @@ namespace Day7
                                 Code[modeAndParams[2].Parameter] = 0;
                             }
 
-                            currentIndex += 4;
+                            InstructionPointer += 4;
+
                             break;
                         default:
-                            throw new NotImplementedException("opcode " + opCode + " line " + line + "index " + currentIndex);
+                            throw new NotImplementedException(@"opcode  + {opCode} ");
                     }
                 }
 
-                return prrinted.Single(x => x.Item2).Item1;
+
+                throw new NotImplementedException(@"opcode  + {opCode} ");
             }
 
 
@@ -281,6 +275,9 @@ namespace Day7
                 }
             }
 
+
+            //todo clean up 
+
             public static Instruction CreateInstruction(List<int> parameters, int opCode, int mode1, int mode2, int mode3)
             {
                 if (opCode == 3 || opCode == 4 || parameters.Count == 2)
@@ -289,12 +286,13 @@ namespace Day7
                 }
 
                 return new Instruction(new List<int>
-                {
-                    mode1, mode2, mode3
-                }, new List<int>
-                {
-                    parameters[1], parameters[2], parameters[3]
-                }, opCode);
+                    {
+                        mode1, mode2, mode3
+                    }, new List<int>
+                    {
+                        parameters[1], parameters[2], parameters[3]
+                    },
+                    opCode);
             }
         }
     }
