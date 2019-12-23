@@ -1,14 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Numerics;
-using System.Reflection;
-using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Resolvers;
 using Day5V2;
-using Microsoft.VisualBasic;
 
 namespace Day7
 {
@@ -18,39 +11,80 @@ namespace Day7
         {
             List<int> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/Part2.txt".ParseCsvString();
 
-            List<Computer> computers = CreateComputers(code2);
+            var allSeq= CreateComputers(code2);
 
-            int computerOutputValue = 0;
+            var max = FindMaxSignal(allSeq);
 
-            while (!computers.Last().IsHalted)
+            Console.Out.WriteLine($"Max {max}");
+        }
+
+        private static int FindMaxSignal(List<List<Computer>> allSeq)
+        {
+            var max = 0;
+            foreach (var computers in allSeq)
             {
-                for (int i = 0; i < computers.Count; i++)
+                List<Computer> runWithFeedBack = RunWithFeedBack(computers);
+
+                if (runWithFeedBack.Count > 0 && runWithFeedBack.Last().OutputHistory.Last() > max)
                 {
-                    Computer mutatedComputer = computers[i].Run(computerOutputValue);
-                    computers[i] = mutatedComputer;
-                    computerOutputValue = mutatedComputer.OutputValue;
+                    max = runWithFeedBack.Last().OutputHistory.Last();
                 }
             }
 
-            Console.Out.WriteLine($"Max {computers.Last().OutputHistory.Last()}" );
+            return max;
         }
 
-        private static List<Computer> CreateComputers(List<int> code)
+        private static List<Computer> RunWithFeedBack(List<Computer> list)
         {
-            List<Computer> computers = new List<Computer>();
-            List<int> permutations = new List<int> {9, 8, 7, 6, 5};
-            permutations.Reverse();
-            
-            var stackOfPhases = new Stack<int>(permutations);
+            list[0] = list[0].Run(0);
 
-            computers.Add(new Computer(code, stackOfPhases.Pop()));
+            int skip = 1;
 
-            while (stackOfPhases.Count > 0)
+            while (!list.Last().IsHalted)
             {
-                computers.Add(new Computer(code, stackOfPhases.Pop()));
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (skip > 0)
+                    {
+                        skip--;
+                        continue;
+                    }
+
+                    if (i == 0)
+                    {
+                        list[i] = list[i].Run(list.Last().OutputValue);
+                    }
+                    else
+                    {
+                        list[i] = list[i].Run(list[i - 1].OutputValue);
+                    }
+                }
             }
 
-            return computers;
+            return list;
+        }
+
+        private static List<List<Computer>> CreateComputers(List<int> code)
+        {
+            var permuatatedComputers = new List<List<Computer>>();
+            var permutations = GetPermutations(new List<int> {9, 8, 7, 6, 5}, 5).ToList();
+            permutations.Reverse();
+
+            foreach (var permutation in permutations)
+            {
+                var computers = new List<Computer>();
+                var stackOfPhases = new Stack<int>(permutation.ToList());
+
+                computers.Add(new Computer(code, stackOfPhases.Pop()));
+
+                while (stackOfPhases.Count > 0)
+                {
+                    computers.Add(new Computer(code, stackOfPhases.Pop()));
+                }
+                permuatatedComputers.Add(computers);
+            }
+
+            return permuatatedComputers;
         }
 
         static IEnumerable<IEnumerable<T>>
@@ -81,40 +115,14 @@ namespace Day7
             public int InstructionPointer { get; set; }
             public int OutputValue { get; set; }
             public List<int> OutputHistory = new List<int>();
+            public List<int> InputHistory = new List<int>();
             public int Phase;
             private Instruction _intstruction;
             private List<int> _line;
             private List<int> inputs = new List<int>();
+            private int OutPutCount => OutputHistory.Count;
+            private int inputCounter => InputHistory.Count;
 
-            protected bool Equals(Computer other)
-            {
-                return Equals(Code, other.Code) && Equals(OutputHistory, other.OutputHistory) && Phase == other.Phase && Equals(_intstruction, other._intstruction) && Equals(_line, other._line) &&
-                       Equals(inputs, other.inputs) && IsHalted == other.IsHalted && IsPaused == other.IsPaused && InstructionPointer == other.InstructionPointer && OutputValue == other.OutputValue;
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (ReferenceEquals(null, obj)) return false;
-                if (ReferenceEquals(this, obj)) return true;
-                if (obj.GetType() != this.GetType()) return false;
-                return Equals((Computer) obj);
-            }
-
-            public override int GetHashCode()
-            {
-                var hashCode = new HashCode();
-                hashCode.Add(Code);
-                hashCode.Add(OutputHistory);
-                hashCode.Add(Phase);
-                hashCode.Add(_intstruction);
-                hashCode.Add(_line);
-                hashCode.Add(inputs);
-                hashCode.Add(IsHalted);
-                hashCode.Add(IsPaused);
-                hashCode.Add(InstructionPointer);
-                hashCode.Add(OutputValue);
-                return hashCode.ToHashCode();
-            }
 
             public Computer(List<int> code, int phase)
             {
@@ -159,6 +167,9 @@ namespace Day7
 
                     switch (opCode)
                     {
+                        case 99:
+                            IsHalted = true;
+                            return this;
                         case 1:
                             OutputValue = GetValueForModeAndParamMode(modeAndParams[0], Code) + GetValueForModeAndParamMode(modeAndParams[1], Code);
                             Code[_line[3]] = OutputValue;
@@ -170,13 +181,14 @@ namespace Day7
                             InstructionPointer += 4;
                             break;
                         case 3:
-                            OutputValue++;
-                            if (OutputValue == 1)
+                            if (inputCounter == 0)
                             {
+                                InputHistory.Add(Phase);
                                 Code[modeAndParams[0].Parameter] = Phase;
                             }
                             else
                             {
+                                InputHistory.Add(input);
                                 Code[modeAndParams[0].Parameter] = input;
                             }
 
@@ -280,10 +292,16 @@ namespace Day7
 
             public static Instruction CreateInstruction(List<int> parameters, int opCode, int mode1, int mode2, int mode3)
             {
+                if (opCode == 99)
+                {
+                    return new Instruction(new List<int>(), new List<int>(), opCode);
+                }
+
                 if (opCode == 3 || opCode == 4 || parameters.Count == 2)
                 {
                     return new Instruction(new List<int> {mode1}, new List<int> {parameters[1]}, opCode);
                 }
+
 
                 return new Instruction(new List<int>
                     {
