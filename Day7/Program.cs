@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Day5V2;
+using Extenions;
 
 namespace Day7
 {

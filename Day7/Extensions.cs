@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Day5
+namespace Extenions
 {
     public static class Extensions
     {
