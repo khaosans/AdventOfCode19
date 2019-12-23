@@ -5,16 +5,13 @@ namespace Day8
 {
     public class Layer
     {
-        private List<int> InputValues;
+        public List<int> LayerValues;
         public int Height;
         public int Length;
         
-        private List<int> layer => InputValues.Take(Height * Length).ToList();
-
-
         public Layer(List<int> inputValues, int height, int length)
         {
-            InputValues = inputValues;
+            LayerValues = inputValues;
             Height = height;
             Length = length;
         }
