@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Day5V2;
 using Extenions;
 
 namespace Day7
@@ -12,7 +11,7 @@ namespace Day7
         {
             List<int> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day7/Part2.txt".ParseCsvString();
 
-            var allSeq= CreateComputers(code2);
+            var allSeq = CreateComputers(code2);
 
             var max = FindMaxSignal(allSeq);
 
@@ -82,6 +81,7 @@ namespace Day7
                 {
                     computers.Add(new Computer(code, stackOfPhases.Pop()));
                 }
+
                 permuatatedComputers.Add(computers);
             }
 
@@ -303,11 +303,12 @@ namespace Day7
                     return new Instruction(new List<int> {mode1}, new List<int> {parameters[1]}, opCode);
                 }
 
-
-                return new Instruction(new List<int>
+                return new Instruction(
+                    new List<int>
                     {
                         mode1, mode2, mode3
-                    }, new List<int>
+                    },
+                    new List<int>
                     {
                         parameters[1], parameters[2], parameters[3]
                     },

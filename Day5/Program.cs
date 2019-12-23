@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Day5;
 
-namespace Day5V2
+namespace Day5
 {
     class Program
     {

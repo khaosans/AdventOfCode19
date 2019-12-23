@@ -5,8 +5,5 @@
         <TargetFramework>netcoreapp3.0</TargetFramework>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Day5\Day5.csproj" />
-    </ItemGroup>
 
 </Project>
