@@ -10,7 +10,7 @@ namespace Day5V2
     {
         static void Main(string[] args)
         {
-            var csvString = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day5V2/day5input.txt".ParseCsvString();
+            var csvString = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day5/day5input.txt".ParseCsvString();
             // Run(csvString, 1);
              Run(csvString, 5);
 
