@@ -76,33 +76,28 @@ namespace Day8
             int len = 0;
             for (int i = 0; i < Length; i++)
             {
-
                 for (int j = 0; j < Height; j++)
                 {
                     len++;
-                    var output = display[i,j];
+                    var output = display[i, j];
 
                     if (output == 0)
                     {
                         Console.Out.Write($" ");
-
                     }
                     else
                     {
                         Console.Out.Write("X");
                     }
+
                     if (len % Length == 0)
                     {
                         Console.Out.WriteLine("");
                     }
-                    
                 }
             }
-            
-
         }
 
-       
 
         private int[,] CreteCreateLayer()
         {
@@ -120,7 +115,6 @@ namespace Day8
                         {
                             display[i, j] = i1;
                         }
-                        
                     }
                 }
             }
