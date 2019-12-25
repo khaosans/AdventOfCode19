@@ -8,62 +8,85 @@ namespace Day9
     class Program
     {
         static void Main(string[] args)
+        {/*
+            TestCase1();
+            TestCase2();
+            TestCase3();*/
+            TestPart1();
+        }
+
+        private static void TestCase1()
         {
             List<BigInteger> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day9/testcase1.txt".ParseCsvStringBigInteger();
 
+            var computer = new Computer(code2);
+
+            Computer run = computer.Run();
+
+            PrintOutput(run);
+        }
+
+        private static void TestCase2()
+        {
+            List<BigInteger> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day9/testcase2.txt".ParseCsvStringBigInteger();
 
             var computer = new Computer(code2);
 
             Computer run = computer.Run(1);
-            
 
-            Console.Out.WriteLine($"Max ");
+            PrintOutput(run);
+
+            if (run.OutputHistory.Last() > 999999999999999)
+            {
+                Console.Out.WriteLine("PASS");
+            }
+            else
+            {
+                Console.Out.WriteLine("FAIL");
+            }
         }
 
-        private static BigInteger FindMaxSignal(List<List<Computer>> allSeq)
+        private static void TestCase3()
         {
-            BigInteger max = BigInteger.Zero;
-            foreach (var computers in allSeq)
+            List<BigInteger> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day9/testcase3.txt".ParseCsvStringBigInteger();
+
+            var computer = new Computer(code2);
+
+            Computer run = computer.Run(1);
+
+            PrintOutput(run);
+            if (run.OutputHistory.Last() == 1125899906842624)
             {
-                List<Computer> runWithFeedBack = RunWithFeedBack(computers);
-
-                if (runWithFeedBack.Count > 0 && runWithFeedBack.Last().OutputHistory.Last() > max)
-                {
-                    max = runWithFeedBack.Last().OutputHistory.Last();
-                }
+                Console.Out.WriteLine("PASS");
             }
-
-            return max;
+            else
+            {
+                Console.Out.WriteLine("FAIL");
+            }
         }
 
-        private static List<Computer> RunWithFeedBack(List<Computer> list)
+
+        private static void TestPart1()
         {
-            list[0] = list[0].Run(0);
+            List<BigInteger> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day9/Part1.txt".ParseCsvStringBigInteger();
 
-            int skip = 1;
+            var computer = new Computer(code2);
 
-            while (!list.Last().IsHalted)
-            {
-                for (int i = 0; i < list.Count; i++)
-                {
-                    if (skip > 0)
-                    {
-                        skip--;
-                        continue;
-                    }
+            Computer run = computer.Run(1);
 
-                    if (i == 0)
-                    {
-                        list[i] = list[i].Run(list.Last().OutputValue);
-                    }
-                    else
-                    {
-                        list[i] = list[i].Run(list[i - 1].OutputValue);
-                    }
-                }
-            }
+            PrintOutput(run);
+        }
 
-            return list;
+
+        private static void PrintOutput(Computer run)
+        {
+            var strings = run.OutputHistory.Select(x => x.ToString()).ToArray();
+
+            var output = String.Join(" ", strings);
+
+            Console.Out.WriteLine("Printing Test Case:");
+
+            Console.Out.WriteLine($"{output} ");
         }
 
         private static List<List<Computer>> CreateComputers(List<BigInteger> code)
@@ -108,6 +131,5 @@ namespace Day9
                         t2
                     }));
         }
-
     }
 }
