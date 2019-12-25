@@ -194,9 +194,7 @@ namespace Day9
         {
             public BigInteger Mode;
             public BigInteger Parameter { get; }
-
-            public BigInteger Address;
-
+            
             public ModeAndParam(BigInteger param, BigInteger mode)
             {
                 Mode = mode;

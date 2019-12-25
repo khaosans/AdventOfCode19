@@ -12,7 +12,7 @@ namespace Day9
             TestCase1();
             TestCase2();
             TestCase3();*/
-            TestPart1();
+            TestPart2();
         }
 
         private static void TestCase1()
@@ -73,6 +73,18 @@ namespace Day9
             var computer = new Computer(code2);
 
             Computer run = computer.Run(1);
+
+            PrintOutput(run);
+        }
+
+        
+        private static void TestPart2()
+        {
+            List<BigInteger> code2 = "/Users/souriyakhaosanga/Documents/AdventOfCode/Day9/Part1.txt".ParseCsvStringBigInteger();
+
+            var computer = new Computer(code2);
+
+            Computer run = computer.Run(2);
 
             PrintOutput(run);
         }
